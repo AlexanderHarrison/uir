@@ -72,8 +72,6 @@ typedef enum UIR_DrawCmdType {
     UIR_DRAW_SHAPE_CIRCLE,
     UIR_DRAW_IMAGE_A,
     UIR_DRAW_IMAGE_RGBA,
-
-    UIR_DRAW_INTERNAL_FILL,
 } UIR_DrawCmdType;
 
 typedef struct UIR_Rect {
