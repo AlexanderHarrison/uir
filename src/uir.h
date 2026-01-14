@@ -84,7 +84,7 @@ typedef struct UIR_DrawCmd_Shape {
     uint8_t fill_colour[4];
     uint8_t outline_colour[4];
     float outline_radius;
-    float border_radius;
+    float corner_radius;
 } UIR_DrawCmd_Shape;
 
 typedef struct UIR_DrawCmd_Image {

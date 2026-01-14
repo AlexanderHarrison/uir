@@ -27,7 +27,7 @@ void draw_button(UIR_Rect *rect, float mouse_x, float mouse_y, const char *text)
         .outline_colour = { 150, 150, 150, 255 },
         .outline_radius = 3,
         .rect = *rect,
-        .border_radius = 5,
+        .corner_radius = 5,
     }};
     
     if (

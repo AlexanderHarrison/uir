@@ -19,13 +19,13 @@ UIR_DrawCmd drawcmds[] = {
         .type = UIR_DRAW_SHAPE_RECT,
         .fill_colour = {100, 100, 255, 255},
         .rect = { 50, 50, 300, 300},
-        .border_radius = 10,
+        .corner_radius = 10,
     }},
     { .shape = {
         .type = UIR_DRAW_SHAPE_RECT,
         .fill_colour = {100, 255, 100, 255},
         .rect = { 10, 10, 400, 200},
-        .border_radius = 30,
+        .corner_radius = 30,
     }},
     { .shape = {
         .type = UIR_DRAW_SHAPE_CIRCLE,

@@ -246,7 +246,7 @@ static void UIR_tile_draw_cmd(
                         x - (shape->rect.x0 + w2),
                         y - (shape->rect.y0 + h2),
                         w2, h2,
-                        shape->border_radius
+                        shape->corner_radius
                     );
 
                     UIR_pick_colour(tile[i], shape->outline_colour, shape->fill_colour, shape->outline_radius, r);
@@ -400,7 +400,7 @@ static bool UIR_draw_cmd_is_fill(
         case UIR_DRAW_SHAPE_RECT: {
             UIR_DrawCmd_Shape *shape = &cmd->shape;
             
-            float nonfill_size = shape->outline_radius * 2.f + shape->border_radius + 2.f;
+            float nonfill_size = shape->outline_radius * 2.f + shape->corner_radius + 2.f;
             UIR_Rect fill_rect = {
                 shape->rect.x0 + nonfill_size,
                 shape->rect.y0 + nonfill_size,
