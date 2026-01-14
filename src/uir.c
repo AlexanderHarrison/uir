@@ -294,13 +294,15 @@ static void UIR_tile_draw_cmd(
             float image_x_start = x0 - image->rect.x0;
             float image_y_start = y0 - image->rect.y0;
 
+            float recip_scale = 1.f / image->scale;
+
             for (float y = 0; y < h; y += 1.f) {
                 uint32_t tile_x = tile_x_start;
 
                 for (float x = 0; x < w; x += 1.f) {
-                    float image_x = image_x_start + x * image->scale;
-                    float image_y = image_y_start + y * image->scale;
-
+                    float image_x = (image_x_start + x) * recip_scale;
+                    float image_y = (image_y_start + y) * recip_scale;
+                    
                     uint32_t image_xi = (uint32_t)image_x;
                     uint32_t image_yi = (uint32_t)image_y;
                     uint32_t image_i = image_yi * image->data_stride + image_xi;
@@ -331,14 +333,16 @@ static void UIR_tile_draw_cmd(
             
             float image_x_start = x0 - image->rect.x0;
             float image_y_start = y0 - image->rect.y0;
+            
+            float recip_scale = 1.f / image->scale;
 
             for (float y = 0; y < h; y += 1.f) {
                 uint32_t tile_x = tile_x_start;
 
                 for (float x = 0; x < w; x += 1.f) {
-                    float image_x = image_x_start + x * image->scale;
-                    float image_y = image_y_start + y * image->scale;
-
+                    float image_x = (image_x_start + x) * recip_scale;
+                    float image_y = (image_y_start + y) * recip_scale;
+                    
                     uint32_t image_xi = (uint32_t)image_x;
                     uint32_t image_yi = (uint32_t)image_y;
                     uint32_t image_i = image_yi * image->data_stride + image_xi*4;

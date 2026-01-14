@@ -11,6 +11,8 @@
 unsigned char memory[2000*2000*4];
 unsigned char image[W*H*4];
 
+uint8_t glyph_rgba[24*24*4];
+
 UIR_DrawCmd drawcmds[] = {
     { .shape = {
         .type = UIR_DRAW_SHAPE_RECT,
@@ -24,32 +26,28 @@ UIR_DrawCmd drawcmds[] = {
         .rect = { 10, 10, 400, 200},
         .border_radius = 30,
     }},
-    // { .shape = {
-    //     .type = UIR_DRAW_SHAPE_CIRCLE,
-    //     .fill_colour = {20, 100, 100, 100},
-    //     .outline_colour = {0, 0, 0, 109},
-    //     .rect = { 500, 300, 1000, 900},
-    //     .outline_radius = 10,
-    // }},
-    // { .image = {
-    //     .type = UIR_DRAW_IMAGE_A,
-    //     .tint_colour = {0, 0, 0, 255},
-    //     .rect = { 40, 40, 50, 70},
-    //     .data = glyph,
-    //     .data_stride = 10,
-    //     .scale = 1, 
-    // }},
-    // { .image = {
-    //     .type = UIR_DRAW_IMAGE_RGBA,
-    //     .tint_colour = {0, 0, 0, 0},
-    //     .rect = { 400, 400, 424, 424},
-    //     .data = glyph_rgba,
-    //     .data_stride = 24*4,
-    //     .scale = 1,
-    // }},
+    { .image = {
+        .type = UIR_DRAW_IMAGE_RGBA,
+        .tint_colour = {0, 0, 0, 0},
+        .rect = { 400, 400, 448, 448},
+        .data = glyph_rgba,
+        .data_stride = 24*4,
+        .scale = 2.f,
+    }},
 };
 
 int main(void) {
+    // write gradient glyph_rgba
+    for (uint32_t y = 0; y < 24; ++y) {
+        for (uint32_t x = 0; x < 24; ++x) {
+            uint32_t i = (y*24 + x)*4;
+            glyph_rgba[i + 0] = 255;
+            glyph_rgba[i + 1] = (uint8_t)y * 10;
+            glyph_rgba[i + 2] = (uint8_t)x * 10;
+            glyph_rgba[i + 3] = 255;
+        }
+    }
+    
     UIR *uir = UIR_new(W, H, memory, sizeof(memory));
     if (!uir || uir->error_flags) {
         printf("err\n");
