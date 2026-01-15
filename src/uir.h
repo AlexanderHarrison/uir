@@ -118,4 +118,16 @@ void UIR_write_buffer_rgba(
     size_t row_stride_in_bytes
 );
 
+void UIR_write_buffer_rgb(
+    UIR *uir,
+    unsigned char *rgb_buffer,
+    size_t row_stride_in_bytes
+);
+
+void UIR_write_buffer_bgra(
+    UIR *uir,
+    unsigned char *bgra_buffer,
+    size_t row_stride_in_bytes
+);
+
 #endif

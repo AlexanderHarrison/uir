@@ -2,6 +2,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <string.h>
+#include <assert.h>
 
 #include "../src/uir.h"
 
@@ -10,6 +11,8 @@
 
 unsigned char memory[2000*2000*4];
 unsigned char image[W*H*4];
+unsigned char image_rgb[W*H*3];
+unsigned char image_bgra[W*H*4];
 
 uint8_t glyph_rgba[24*24*4];
 
@@ -57,15 +60,31 @@ int main(void) {
     memcpy(uir->clear_colour, (uint8_t[4]){255, 100, 100, 255}, 4);
     UIR_draw(uir, drawcmds, sizeof(drawcmds)/sizeof(drawcmds[0]));
     UIR_write_buffer_rgba(uir, image, W*4);
+    UIR_write_buffer_bgra(uir, image_bgra, W*4);
+    UIR_write_buffer_rgb(uir, image_rgb, W*3);
+    
+    for (uint32_t y = 0; y < H; ++y) {
+        for (uint32_t x = 0; x < W; ++x) {
+            uint8_t *rgba = &image[y*W*4 + x*4];
+            uint8_t *bgra = &image_bgra[y*W*4 + x*4];
+            uint8_t *rgb = &image_rgb[y*W*3 + x*3];
+
+            assert(rgba[0] == bgra[2]);
+            assert(rgba[1] == bgra[1]);
+            assert(rgba[2] == bgra[0]);
+            assert(rgba[3] == bgra[3]);
+
+            assert(rgba[0] == rgb[0]);
+            assert(rgba[1] == rgb[1]);
+            assert(rgba[2] == rgb[2]);
+        }
+    }
 
     FILE *f = fopen("test.ppm", "wb+");
     fprintf(f, "P6\n");
     fprintf(f, "%u %u\n", W, H);
     fprintf(f, "255\n");
-    for (size_t i = 0; i < W*H; i++) {
-        fputc(image[i*4+0], f);
-        fputc(image[i*4+1], f);
-        fputc(image[i*4+2], f);
-    }
+    for (size_t i = 0; i < W*H*3; i++)
+        fputc(image_rgb[i], f);
     fclose(f);
 }

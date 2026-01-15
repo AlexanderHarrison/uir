@@ -580,6 +580,55 @@ uint32_t UIR_draw(
     return redrawn;
 }
 
+void UIR_write_buffer_rgb(
+    UIR *uir,
+    unsigned char *rgb_buffer,
+    size_t row_stride_in_bytes
+) {
+    for (uint32_t y = 0; y < uir->height_in_px; ++y) {
+        for (uint32_t x = 0; x < uir->width_in_px; ++x) {
+            uint32_t tile_x = x / UIR_TILE_SIZE;
+            uint32_t tile_y = y / UIR_TILE_SIZE;
+            uint32_t px_x = x % UIR_TILE_SIZE;
+            uint32_t px_y = y % UIR_TILE_SIZE;
+            uint32_t tile_idx = tile_y * uir->width_in_tiles + tile_x;
+            uint32_t px_idx = px_y * UIR_TILE_SIZE + px_x;
+
+            memcpy(
+                &rgb_buffer[y * (uint32_t)row_stride_in_bytes + x*3],
+                uir->tiles[tile_idx][px_idx],
+                3
+            );
+        }
+    }
+}
+
+void UIR_write_buffer_bgra(
+    UIR *uir,
+    unsigned char *bgra_buffer,
+    size_t row_stride_in_bytes
+) {
+    for (uint32_t y = 0; y < uir->height_in_px; ++y) {
+        for (uint32_t x = 0; x < uir->width_in_px; ++x) {
+            uint32_t tile_x = x / UIR_TILE_SIZE;
+            uint32_t tile_y = y / UIR_TILE_SIZE;
+            uint32_t px_x = x % UIR_TILE_SIZE;
+            uint32_t px_y = y % UIR_TILE_SIZE;
+            uint32_t tile_idx = tile_y * uir->width_in_tiles + tile_x;
+            uint32_t px_idx = px_y * UIR_TILE_SIZE + px_x;
+            
+            uint8_t px[4];
+            memcpy(px, uir->tiles[tile_idx][px_idx], 4);
+
+            uint8_t c = px[0] ^ px[2];
+            px[0] ^= c;
+            px[2] ^= c;
+
+            memcpy(&bgra_buffer[y * (uint32_t)row_stride_in_bytes + x*4], px, 4);
+        }
+    }
+}
+
 void UIR_write_buffer_rgba(
     UIR *uir,
     unsigned char *rgba_buffer,
