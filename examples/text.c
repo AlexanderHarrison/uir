@@ -72,8 +72,7 @@ int main(void) {
         }};
     }
     
-
-    memcpy(uir->clear_colour, (uint8_t[4]){ 255, 100, 100, 255 }, 4);
+    uir->clear_colour = (RGBA) { 255, 100, 100, 255 };
 
     Timer t = timer_start();
     UIR_draw(uir, drawcmds, sizeof(drawcmds)/sizeof(drawcmds[0]));

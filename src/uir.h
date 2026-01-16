@@ -12,7 +12,11 @@ enum {
     UIR_ERROR_NO_MEM = (1u << 0),
 };
 
-typedef uint8_t UIR_Tile[UIR_TILE_SIZE*UIR_TILE_SIZE][4];
+typedef struct RGBA {
+    uint8_t r, g, b, a;
+} RGBA;
+
+typedef RGBA UIR_Tile[UIR_TILE_SIZE*UIR_TILE_SIZE];
 typedef uint32_t UIR_Hash;
 
 typedef struct UIR_TileInfo {
@@ -40,7 +44,7 @@ typedef struct UIR {
     // Read/Write
 
     uint32_t error_flags;
-    uint8_t clear_colour[4];
+    RGBA clear_colour;
 } UIR;
 
 // Returns minimum memory size that can fit this panel.
@@ -81,8 +85,8 @@ typedef struct UIR_Rect {
 typedef struct UIR_DrawCmd_Shape {
     uint32_t type;
     UIR_Rect rect;
-    uint8_t fill_colour[4];
-    uint8_t outline_colour[4];
+    RGBA fill_colour;
+    RGBA outline_colour;
     float outline_radius;
     float corner_radius;
 } UIR_DrawCmd_Shape;
@@ -90,7 +94,7 @@ typedef struct UIR_DrawCmd_Shape {
 typedef struct UIR_DrawCmd_Image {
     uint32_t type;
     UIR_Rect rect;
-    uint8_t tint_colour[4];
+    RGBA tint_colour;
     uint8_t *data;
     uint32_t data_stride;
     float scale;

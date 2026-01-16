@@ -34,9 +34,9 @@ void draw_button(UIR_Rect *rect, float mouse_x, float mouse_y, const char *text)
         rect->x0 <= mouse_x && mouse_x <= rect->x1
         && rect->y0 <= mouse_y && mouse_y <= rect->y1
     ) {
-        memcpy(drawcmds[drawcmd_count].shape.fill_colour, (uint8_t[4]) {30, 30, 30, 255}, 4);
+        drawcmds[drawcmd_count].shape.fill_colour = (RGBA) { 30, 30, 30, 255 };
     } else {
-        memcpy(drawcmds[drawcmd_count].shape.fill_colour, (uint8_t[4]) {100, 100, 100, 255}, 4);
+        drawcmds[drawcmd_count].shape.fill_colour = (RGBA) { 100, 100, 100, 255 };
     }
 
     drawcmd_count++;
@@ -89,7 +89,7 @@ int main(void) {
         printf("err\n");
         exit(1);
     }
-    memcpy(uir->clear_colour, (uint8_t[4]){ 73, 70, 70, 255 }, 4);
+    uir->clear_colour = (RGBA) { 73, 70, 70, 255 };
 
     // --------------------------
     // Load font

@@ -175,49 +175,41 @@ static inline float UIR_circle(
 
 // Performs premultiplied blending
 static inline void UIR_blend(
-    uint8_t dst[4],
-    uint8_t c[4],
+    RGBA *dst,
+    RGBA c,
     float c_alpha
 ) {
     float r255 = 0.00392156862745098f;
-    float dst_factor = 1.f - (float)c[3] * r255 * c_alpha;
-    
-    for (uint32_t i = 0; i < 4; ++i) {
-        float dst_f = (float)dst[i];
-        float c_f = (float)c[i];
-        float dst_c_f = c_f * c_alpha + dst_f * dst_factor;
-        dst[i] = (uint8_t)dst_c_f;
-    }
+    float dst_factor = 1.f - (float)c.a * r255 * c_alpha;
+
+    dst->r = (uint8_t)((float)c.r * c_alpha + (float)dst->r * dst_factor);
+    dst->g = (uint8_t)((float)c.g * c_alpha + (float)dst->g * dst_factor);
+    dst->b = (uint8_t)((float)c.b * c_alpha + (float)dst->b * dst_factor);
+    dst->a = (uint8_t)((float)c.a * c_alpha + (float)dst->a * dst_factor);
 }
 
 // Performs 2 consecutive premultiplied blends
 static inline void UIR_blend2(
-    uint8_t dst[4],
-    uint8_t c1[4],
-    uint8_t c2[4],
+    RGBA *dst,
+    RGBA c1,
+    RGBA c2,
     float c1_alpha,
     float c2_alpha
 ) {
     float r255 = 0.00392156862745098f;
-    float dst_factor_1 = 1.f - (float)c1[3] * r255 * c1_alpha;
-    float dst_factor_2 = 1.f - (float)c2[3] * r255 * c2_alpha;
-    
-    for (uint32_t i = 0; i < 4; ++i) {
-        float dst_f = (float)dst[i];
-        float c1_f = (float)c1[i];
-        float c2_f = (float)c2[i];
+    float dst_factor_1 = 1.f - (float)c1.a * r255 * c1_alpha;
+    float dst_factor_2 = 1.f - (float)c2.a * r255 * c2_alpha;
 
-        float dst_c1_f = c1_f * c1_alpha + dst_f * dst_factor_1;
-        float dst_c1_c2_f = c2_f * c2_alpha + dst_c1_f * dst_factor_2;
-
-        dst[i] = (uint8_t)dst_c1_c2_f;
-    }
+    dst->r = (uint8_t)((float)c2.r * c2_alpha + ((float)c1.r * c1_alpha + (float)dst->r * dst_factor_1) * dst_factor_2);
+    dst->g = (uint8_t)((float)c2.g * c2_alpha + ((float)c1.g * c1_alpha + (float)dst->g * dst_factor_1) * dst_factor_2);
+    dst->b = (uint8_t)((float)c2.b * c2_alpha + ((float)c1.b * c1_alpha + (float)dst->b * dst_factor_1) * dst_factor_2);
+    dst->a = (uint8_t)((float)c2.a * c2_alpha + ((float)c1.a * c1_alpha + (float)dst->a * dst_factor_1) * dst_factor_2);
 }
 
 static inline void UIR_pick_colour(
-    uint8_t dst[4],
-    uint8_t outline[4],
-    uint8_t fill[4],
+    RGBA *dst,
+    RGBA outline,
+    RGBA fill,
     float outline_radius,
     float r
 ) {
@@ -249,7 +241,7 @@ static void UIR_tile_draw_cmd(
                         shape->corner_radius
                     );
 
-                    UIR_pick_colour(tile[i], shape->outline_colour, shape->fill_colour, shape->outline_radius, r);
+                    UIR_pick_colour(&tile[i], shape->outline_colour, shape->fill_colour, shape->outline_radius, r);
 
                     i++;
                 }
@@ -271,7 +263,7 @@ static void UIR_tile_draw_cmd(
                         radius
                     );
     
-                    UIR_pick_colour(tile[i], shape->outline_colour, shape->fill_colour, shape->outline_radius, r);
+                    UIR_pick_colour(&tile[i], shape->outline_colour, shape->fill_colour, shape->outline_radius, r);
 
                     i++;
                 }
@@ -309,7 +301,7 @@ static void UIR_tile_draw_cmd(
 
                     uint8_t alpha = image->data[image_i];
                     float r255 = 0.00392156862745098f;
-                    UIR_blend(tile[tile_y*UIR_TILE_SIZE + tile_x], image->tint_colour, (float)alpha * r255);
+                    UIR_blend(&tile[tile_y*UIR_TILE_SIZE + tile_x], image->tint_colour, (float)alpha * r255);
 
                     tile_x++;
                 }
@@ -348,8 +340,8 @@ static void UIR_tile_draw_cmd(
                     uint32_t image_i = image_yi * image->data_stride + image_xi*4;
 
                     UIR_blend2(
-                        tile[tile_y*UIR_TILE_SIZE + tile_x],
-                        &image->data[image_i],
+                        &tile[tile_y*UIR_TILE_SIZE + tile_x],
+                        *(RGBA*)&image->data[image_i],
                         image->tint_colour,
                         1.f,
                         1.f
@@ -364,35 +356,22 @@ static void UIR_tile_draw_cmd(
     }
 }
 
-// static void UIR_fill_over_tile(
-//     UIR_Tile tile,
-//     uint8_t colour[4]
-// ) {
-//     for (uint32_t i = 0; i < UIR_TILE_SIZE*UIR_TILE_SIZE; ++i)
-//         UIR_blend(tile[i], colour, 1);
-// }
-
 static void UIR_fill_tile(
     UIR_Tile tile,
-    uint8_t colour[4]
+    RGBA colour
 ) {
     // Loop is manually unrolled for better codegen. It's equivalent to this code:
     // for (uint32_t i = 0; i < UIR_TILE_SIZE*UIR_TILE_SIZE; ++i)
-    //     memcpy(uir->tiles[tile_idx][i], uir->clear_colour, 4);
+    //     memcpy(&uir->tiles[tile_idx][i], &uir->clear_colour, 4);
 
-    uint8_t colour_x4[16];
-    memcpy(&colour_x4[0], colour, 4);
-    memcpy(&colour_x4[4], colour, 4);
-    memcpy(&colour_x4[8], colour, 4);
-    memcpy(&colour_x4[12], colour, 4);
-
-    uint8_t *tile_ptr = tile[0];
-    for (uint32_t i = 0; i < UIR_TILE_SIZE*UIR_TILE_SIZE*4; i += 16)
-        memcpy(&tile_ptr[i], colour_x4, 16);
+    RGBA colour_x4[4] = { colour, colour, colour, colour };
+    RGBA *tile_ptr = &tile[0];
+    for (uint32_t i = 0; i < UIR_TILE_SIZE*UIR_TILE_SIZE; i += 4)
+        memcpy(&tile_ptr[i], colour_x4, sizeof(RGBA) * 4);
 }
 
 static bool UIR_draw_cmd_is_fill(
-    uint8_t fill_colour[4],
+    RGBA *fill_colour,
     UIR_Rect *tile_rect,
     UIR_DrawCmd *cmd
 ) {
@@ -407,8 +386,8 @@ static bool UIR_draw_cmd_is_fill(
                 shape->rect.x1 - nonfill_size,
                 shape->rect.y1 - nonfill_size,
             };
-
-            memcpy(fill_colour, shape->fill_colour, 4);
+            
+            *fill_colour = shape->fill_colour;
             return UIR_rect_inside(tile_rect, &fill_rect);
         }
 
@@ -442,7 +421,7 @@ static bool UIR_draw_cmd_is_fill(
             for (uint32_t i = 0; i < 4; ++i)
                 all_inside &= corners_dist_sq[i] <= fill_radius_sq;
 
-            memcpy(fill_colour, shape->fill_colour, 4);
+            *fill_colour = shape->fill_colour;
             return all_inside;
         } break;
 
@@ -471,13 +450,11 @@ static void UIR_tile_draw(
     UIR_DrawCmd *draw_cmds_end = draw_cmds_start + draw_cmd_count;
 
     // Find clear colour
-    uint8_t clear_colour[4] = {0, 0, 0, 0};
-    memcpy(clear_colour, uir->clear_colour, 4);
-
+    RGBA clear_colour = uir->clear_colour;
     for (; draw_cmds != draw_cmds_end; draw_cmds++) {
-        uint8_t fill_colour[4];
-        if (UIR_draw_cmd_is_fill(fill_colour, &tile_rect, draw_cmds)) {
-            UIR_blend(clear_colour, fill_colour, 1.f);
+        RGBA fill_colour;
+        if (UIR_draw_cmd_is_fill(&fill_colour, &tile_rect, draw_cmds)) {
+            UIR_blend(&clear_colour, fill_colour, 1.f);
         } else if (UIR_rect_intersect(&tile_rect, &draw_cmds->common.rect)) {
             break;
         }
@@ -530,7 +507,7 @@ uint32_t UIR_draw(
     // ------------------------------
     // reset hashes
     
-    uint32_t init_hash = UIR_hash(uir->clear_colour, sizeof(uir->clear_colour));
+    uint32_t init_hash = UIR_hash((uint8_t*)&uir->clear_colour, sizeof(uir->clear_colour));
     for (uint32_t y = 0; y < uir->height_in_tiles; ++y)
         for (uint32_t x = 0; x < uir->width_in_tiles; ++x)
             uir->tile_info[y*uir->width_in_tiles + x].hash_new = init_hash ^ x ^ (y << 16);
@@ -596,7 +573,7 @@ void UIR_write_buffer_rgb(
 
             memcpy(
                 &rgb_buffer[y * (uint32_t)row_stride_in_bytes + x*3],
-                uir->tiles[tile_idx][px_idx],
+                &uir->tiles[tile_idx][px_idx],
                 3
             );
         }
@@ -617,14 +594,12 @@ void UIR_write_buffer_bgra(
             uint32_t tile_idx = tile_y * uir->width_in_tiles + tile_x;
             uint32_t px_idx = px_y * UIR_TILE_SIZE + px_x;
             
-            uint8_t px[4];
-            memcpy(px, uir->tiles[tile_idx][px_idx], 4);
+            RGBA px = uir->tiles[tile_idx][px_idx];
+            uint8_t c = px.r ^ px.b;
+            px.r ^= c;
+            px.b ^= c;
 
-            uint8_t c = px[0] ^ px[2];
-            px[0] ^= c;
-            px[2] ^= c;
-
-            memcpy(&bgra_buffer[y * (uint32_t)row_stride_in_bytes + x*4], px, 4);
+            memcpy(&bgra_buffer[y * (uint32_t)row_stride_in_bytes + x*4], &px, 4);
         }
     }
 }
@@ -645,7 +620,7 @@ void UIR_write_buffer_rgba(
 
             memcpy(
                 &rgba_buffer[y * (uint32_t)row_stride_in_bytes + x*4],
-                uir->tiles[tile_idx][px_idx],
+                &uir->tiles[tile_idx][px_idx],
                 4
             );
         }

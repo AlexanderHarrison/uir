@@ -57,7 +57,7 @@ int main(void) {
         exit(1);
     }
 
-    memcpy(uir->clear_colour, (uint8_t[4]){255, 100, 100, 255}, 4);
+    uir->clear_colour = (RGBA) { 255, 100, 100, 255 };
     UIR_draw(uir, drawcmds, sizeof(drawcmds)/sizeof(drawcmds[0]));
     UIR_write_buffer_rgba(uir, image, W*4);
     UIR_write_buffer_bgra(uir, image_bgra, W*4);
