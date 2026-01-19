@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <assert.h>
 
 #define ALIGN_UP(p, align) (void*)(((uintptr_t)(p) + ((uintptr_t)align) - 1) & ~(((uintptr_t)align) - 1))
 #define ALIGN_DOWN(p, align) (void*)((uintptr_t)(p) & ~((align)-1))
@@ -16,45 +17,20 @@ static void UIR_check_tiles_fit(UIR *uir) {
         uir->error_flags |= UIR_ERROR_NO_MEM;
 }
 
-static UIR_Hash UIR_murmur32_scramble(uint32_t k) {
-    k *= 0xcc9e2d51;
-    k = (k << 15) | (k >> 17);
-    k *= 0x1b873593;
-    return k;
-}
-
-static UIR_Hash UIR_hash(
-    unsigned char *data,
-    size_t size
-) {
-    uint32_t h = 0x1b873593;
-    uint32_t k;
-    for (size_t i = size >> 2; i; i--) {
-        memcpy(&k, data, sizeof(uint32_t));
-        data += sizeof(uint32_t);
-        h ^= UIR_murmur32_scramble(k);
-        h = (h << 13) | (h >> 19);
-        h = h * 5 + 0xe6546b64;
-    }
-    k = 0;
-    for (size_t i = size & 3; i; i--) {
-        k <<= 8;
-        k |= data[i - 1];
-    }
-    h ^= UIR_murmur32_scramble(k);
-    h ^= (uint32_t)size;
-    h ^= h >> 16;
-    h *= 0x85ebca6b;
-    h ^= h >> 13;
-    h *= 0xc2b2ae35;
-    h ^= h >> 16;
-    return h;
-}
-
 static UIR_Hash UIR_hash_draw_cmd(
     UIR_DrawCmd *cmd
 ) {
-    return UIR_hash((unsigned char*)cmd, sizeof(*cmd));
+    assert(sizeof(UIR_DrawCmd) == 0x28);
+    uint8_t *data = (uint8_t*)cmd;
+
+    uint64_t h = 0;
+    uint64_t k;
+    memcpy(&k, data + 0x00, 8); h = ((h << 11) | (h >> 53)) ^ k; 
+    memcpy(&k, data + 0x08, 8); h = ((h << 11) | (h >> 53)) ^ k; 
+    memcpy(&k, data + 0x10, 8); h = ((h << 11) | (h >> 53)) ^ k; 
+    memcpy(&k, data + 0x18, 8); h = ((h << 11) | (h >> 53)) ^ k; 
+    memcpy(&k, data + 0x20, 8); h = ((h << 11) | (h >> 53)) ^ k; 
+    return (UIR_Hash)(h ^ (h >> 32)); 
 }
 
 size_t UIR_minimum_memory_size(
@@ -588,7 +564,8 @@ uint32_t UIR_draw(
     // ------------------------------
     // reset hashes
     
-    uint32_t init_hash = UIR_hash((uint8_t*)&uir->clear_colour, sizeof(uir->clear_colour));
+    uint32_t init_hash;
+    memcpy(&init_hash, &uir->clear_colour, sizeof(RGBA));
     for (uint32_t y = 0; y < uir->height_in_tiles; ++y) {
         for (uint32_t x = 0; x < uir->width_in_tiles; ++x) {
             UIR_TileInfo *info = &uir->tile_info[y*uir->width_in_tiles + x];
@@ -602,7 +579,6 @@ uint32_t UIR_draw(
 
     for (uint32_t i = 0; i < draw_cmd_count; ++i) {
         UIR_DrawCmd *cmd = &draw_cmds[i];
-
         uint32_t draw_cmd_hash = UIR_hash_draw_cmd(cmd);
 
         UIR_Rect *bb = &cmd->common.rect;

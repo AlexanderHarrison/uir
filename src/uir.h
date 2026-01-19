@@ -22,7 +22,7 @@ typedef struct UIR_TileInfo {
     UIR_Hash hash_old;
     UIR_Hash hash_new;
     uint32_t drawcmd_count; 
-    uint32_t drawcmd_idx[7];
+    uint32_t drawcmd_idx[11];
 } UIR_TileInfo;
 
 typedef struct UIR {
