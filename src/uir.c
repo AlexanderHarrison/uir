@@ -22,15 +22,17 @@ static UIR_Hash UIR_hash_draw_cmd(
 ) {
     assert(sizeof(UIR_DrawCmd) == 0x28);
     uint8_t *data = (uint8_t*)cmd;
-
-    uint64_t h = 0;
+    
+    // unrolled fnv1a
+    uint64_t h = 0xcbf29ce484222325;
+    uint64_t prime = 0x100000001b3;
     uint64_t k;
-    memcpy(&k, data + 0x00, 8); h = ((h << 11) | (h >> 53)) ^ k; 
-    memcpy(&k, data + 0x08, 8); h = ((h << 11) | (h >> 53)) ^ k; 
-    memcpy(&k, data + 0x10, 8); h = ((h << 11) | (h >> 53)) ^ k; 
-    memcpy(&k, data + 0x18, 8); h = ((h << 11) | (h >> 53)) ^ k; 
-    memcpy(&k, data + 0x20, 8); h = ((h << 11) | (h >> 53)) ^ k; 
-    return (UIR_Hash)(h ^ (h >> 32)); 
+    memcpy(&k, data + 0x00, 8); h = (h ^ k) * prime; 
+    memcpy(&k, data + 0x08, 8); h = (h ^ k) * prime; 
+    memcpy(&k, data + 0x10, 8); h = (h ^ k) * prime; 
+    memcpy(&k, data + 0x18, 8); h = (h ^ k) * prime; 
+    memcpy(&k, data + 0x20, 8); h = (h ^ k) * prime;
+    return (uint32_t)(h >> 32); 
 }
 
 size_t UIR_minimum_memory_size(
