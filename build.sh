@@ -24,6 +24,7 @@ fi
 
 /usr/bin/c99 ${WARN_FLAGS} ${PATH_FLAGS} ${BASE_FLAGS} -c src/uir.c -o build/uir.o
 /usr/bin/gcc ${WARN_FLAGS} ${PATH_FLAGS} ${BASE_FLAGS} examples/bench.c build/uir.o ${LINK_FLAGS} -o build/bench
+/usr/bin/gcc ${WARN_FLAGS} ${PATH_FLAGS} ${BASE_FLAGS} examples/bench_text.c build/stb_truetype.o build/uir.o ${LINK_FLAGS} -o build/bench_text
 /usr/bin/gcc ${WARN_FLAGS} ${PATH_FLAGS} ${BASE_FLAGS} examples/test.c build/uir.o ${LINK_FLAGS} -o build/test
 /usr/bin/gcc ${WARN_FLAGS} ${PATH_FLAGS} ${BASE_FLAGS} examples/text.c build/stb_truetype.o build/uir.o ${LINK_FLAGS} -o build/text
 /usr/bin/gcc ${WARN_FLAGS} ${PATH_FLAGS} ${BASE_FLAGS} examples/ui.c build/stb_truetype.o build/uir.o build/RGFW.o ${LINK_FLAGS} -lX11 -lXrandr -o build/ui

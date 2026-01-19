@@ -8,6 +8,7 @@
 
 #define ALIGN_UP(p, align) (void*)(((uintptr_t)(p) + ((uintptr_t)align) - 1) & ~(((uintptr_t)align) - 1))
 #define ALIGN_DOWN(p, align) (void*)((uintptr_t)(p) & ~((align)-1))
+#define countof(A) (sizeof(A)/sizeof(*(A)))
 
 static void UIR_check_tiles_fit(UIR *uir) {
     uint32_t required_tile_count = uir->width_in_tiles * uir->height_in_tiles;
@@ -102,7 +103,7 @@ UIR *UIR_new(
     uir->tile_info = (UIR_TileInfo*)memory_left;
     memory_left += sizeof(UIR_TileInfo) * (size_t)uir->tile_count;
     uir->tiles = (UIR_Tile*)memory_left;
-    
+
     // ---------------------------
     // resize
 
@@ -432,6 +433,7 @@ static bool UIR_draw_cmd_is_fill(
 
 static void UIR_tile_draw(
     UIR *uir,
+    UIR_TileInfo *info,
     UIR_DrawCmd *draw_cmds,
     uint32_t draw_cmd_count,
     uint32_t tile_x,
@@ -446,16 +448,16 @@ static void UIR_tile_draw(
         .y1 = (float)((tile_y + 1) * UIR_TILE_SIZE),
     };
 
-    UIR_DrawCmd *draw_cmds_start = draw_cmds;
-    UIR_DrawCmd *draw_cmds_end = draw_cmds_start + draw_cmd_count;
-
+    uint32_t idx_count = info->drawcmd_count < countof(info->drawcmd_idx) ? info->drawcmd_count : countof(info->drawcmd_idx);
+    
     // Find clear colour
     RGBA clear_colour = uir->clear_colour;
-    for (; draw_cmds != draw_cmds_end; draw_cmds++) {
+    uint32_t idx_i = 0;
+    for (; idx_i < idx_count; ++idx_i) {
         RGBA fill_colour;
-        if (UIR_draw_cmd_is_fill(&fill_colour, &tile_rect, draw_cmds)) {
+        if (UIR_draw_cmd_is_fill(&fill_colour, &tile_rect, &draw_cmds[info->drawcmd_idx[idx_i]])) {
             UIR_blend(&clear_colour, fill_colour, 1.f);
-        } else if (UIR_rect_intersect(&tile_rect, &draw_cmds->common.rect)) {
+        } else {
             break;
         }
     }
@@ -463,10 +465,22 @@ static void UIR_tile_draw(
     // Clear tile
     UIR_fill_tile(uir->tiles[tile_idx], clear_colour);
     
-    // Draw!
-    for (; draw_cmds != draw_cmds_end; draw_cmds++) {
-        if (UIR_rect_intersect(&tile_rect, &draw_cmds->common.rect))
-            UIR_tile_draw_cmd(uir->tiles[tile_idx], &tile_rect, draw_cmds);
+    // Run indexed draw cmds
+    for (; idx_i < idx_count; ++idx_i)
+        UIR_tile_draw_cmd(uir->tiles[tile_idx], &tile_rect, &draw_cmds[info->drawcmd_idx[idx_i]]);
+    
+    // There were more drawcmds in this tile than could fit in the index, we have to loop through the rest
+    if (idx_count < info->drawcmd_count) {
+        UIR_DrawCmd *draw_cmds_start = &draw_cmds[info->drawcmd_idx[countof(info->drawcmd_idx)-1]];
+        UIR_DrawCmd *draw_cmds_end = draw_cmds_start + draw_cmd_count;
+    
+        for (; draw_cmds != draw_cmds_end; draw_cmds++) {
+            if (UIR_rect_intersect(&tile_rect, &draw_cmds->common.rect)) {
+                UIR_tile_draw_cmd(uir->tiles[tile_idx], &tile_rect, draw_cmds);
+                if (++idx_count == info->drawcmd_count)
+                    break;
+            }
+        }
     }
 }
 
@@ -508,12 +522,16 @@ uint32_t UIR_draw(
     // reset hashes
     
     uint32_t init_hash = UIR_hash((uint8_t*)&uir->clear_colour, sizeof(uir->clear_colour));
-    for (uint32_t y = 0; y < uir->height_in_tiles; ++y)
-        for (uint32_t x = 0; x < uir->width_in_tiles; ++x)
-            uir->tile_info[y*uir->width_in_tiles + x].hash_new = init_hash ^ x ^ (y << 16);
+    for (uint32_t y = 0; y < uir->height_in_tiles; ++y) {
+        for (uint32_t x = 0; x < uir->width_in_tiles; ++x) {
+            UIR_TileInfo *info = &uir->tile_info[y*uir->width_in_tiles + x];
+            info->hash_new = init_hash ^ x ^ (y << 16);
+            info->drawcmd_count = 0;
+        }
+    }
 
     // ------------------------------
-    // hash draw_cmds for tiles
+    // hash draw_cmds for tiles and find first few drawcmd indices
 
     for (uint32_t i = 0; i < draw_cmd_count; ++i) {
         UIR_DrawCmd *cmd = &draw_cmds[i];
@@ -528,8 +546,12 @@ uint32_t UIR_draw(
         
         for (uint32_t y = y0; y < y1; ++y) {
             for (uint32_t x = x0; x < x1; ++x) {
-                uint32_t tile_idx = y * uir->width_in_tiles + x;
-                uir->tile_info[tile_idx].hash_new ^= draw_cmd_hash;
+                UIR_TileInfo *info = &uir->tile_info[y * uir->width_in_tiles + x];
+                info->hash_new ^= draw_cmd_hash;
+
+                uint32_t drawcmd_count = info->drawcmd_count++;
+                if (drawcmd_count < countof(info->drawcmd_idx))
+                    info->drawcmd_idx[drawcmd_count] = i;
             }
         }
     }
@@ -549,7 +571,7 @@ uint32_t UIR_draw(
             if (tile_info->hash_old != tile_info->hash_new) {
                 redrawn++;
                 tile_info->hash_old = tile_info->hash_new;
-                UIR_tile_draw(uir, draw_cmds, draw_cmd_count, x, y);
+                UIR_tile_draw(uir, tile_info, draw_cmds, draw_cmd_count, x, y);
             }
         }
     }
@@ -626,3 +648,4 @@ void UIR_write_buffer_rgba(
         }
     }
 }
+

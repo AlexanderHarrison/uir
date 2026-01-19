@@ -6,7 +6,6 @@
 #include <stdbool.h>
 
 #define UIR_TILE_SIZE 16
-#define UIR_COPY_COLOUR(dst, src) memcpy(dst, src, 4)
 
 enum {
     UIR_ERROR_NO_MEM = (1u << 0),
@@ -22,6 +21,8 @@ typedef uint32_t UIR_Hash;
 typedef struct UIR_TileInfo {
     UIR_Hash hash_old;
     UIR_Hash hash_new;
+    uint32_t drawcmd_count; 
+    uint32_t drawcmd_idx[5];
 } UIR_TileInfo;
 
 typedef struct UIR {
