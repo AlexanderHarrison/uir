@@ -174,37 +174,105 @@ static inline float UIR_circle(
     return UIR_length(px, py) - radius;
 }
 
-// Performs premultiplied blending
-static inline void UIR_blend(
+// Performs integer premultiplied blending
+static inline void UIR_blend_i(
     RGBA *dst,
     RGBA c,
-    float c_alpha
+    uint8_t c_alpha
 ) {
-    float r255 = 0.00392156862745098f;
-    float dst_factor = 1.f - (float)c.a * r255 * c_alpha;
+    // scale dst from 0..0xff -> 0..0xffff
+    uint32_t dst_r = dst->r;
+    uint32_t dst_g = dst->g;
+    uint32_t dst_b = dst->b;
+    uint32_t dst_a = dst->a;
+    dst_r = (dst_r << 8) + dst_r;
+    dst_g = (dst_g << 8) + dst_g;
+    dst_b = (dst_b << 8) + dst_b;
+    dst_a = (dst_a << 8) + dst_a;
 
-    dst->r = (uint8_t)((float)c.r * c_alpha + (float)dst->r * dst_factor);
-    dst->g = (uint8_t)((float)c.g * c_alpha + (float)dst->g * dst_factor);
-    dst->b = (uint8_t)((float)c.b * c_alpha + (float)dst->b * dst_factor);
-    dst->a = (uint8_t)((float)c.a * c_alpha + (float)dst->a * dst_factor);
+    // scale c from 0..0xff -> 0..0xffff
+    uint32_t c_r = c.r;
+    uint32_t c_g = c.g;
+    uint32_t c_b = c.b;
+    uint32_t c_a = c.a;
+    c_r = (c_r << 8) + c_r;
+    c_g = (c_g << 8) + c_g;
+    c_b = (c_b << 8) + c_b;
+    c_a = (c_a << 8) + c_a;
+    
+    // scale c_alpha from 0..0xff -> 0..0xffff
+    uint32_t c_a2 = c_alpha;
+    c_a2 = (c_a2 << 8) + c_a2;
+
+    // dst = c * c_alpha + dst * (1 - c.a * c_alpha)
+    uint32_t dst_factor = (0xFFFFFFFF - (c_a * c_a2)) >> 16;
+    dst_r = ((c_r * c_a2) + (dst_r * dst_factor)) >> 24;
+    dst_g = ((c_g * c_a2) + (dst_g * dst_factor)) >> 24;
+    dst_b = ((c_b * c_a2) + (dst_b * dst_factor)) >> 24;
+    dst_a = ((c_a * c_a2) + (dst_a * dst_factor)) >> 24;
+
+    dst->r = (uint8_t)dst_r;
+    dst->g = (uint8_t)dst_g;
+    dst->b = (uint8_t)dst_b;
+    dst->a = (uint8_t)dst_a;
 }
 
-// Performs 2 consecutive premultiplied blends
-static inline void UIR_blend2(
+// Performs 2 consecutive integer premultiplied blends
+static inline void UIR_blend2_i(
     RGBA *dst,
     RGBA c1,
     RGBA c2,
-    float c1_alpha,
-    float c2_alpha
+    uint8_t c1_alpha,
+    uint8_t c2_alpha
 ) {
-    float r255 = 0.00392156862745098f;
-    float dst_factor_1 = 1.f - (float)c1.a * r255 * c1_alpha;
-    float dst_factor_2 = 1.f - (float)c2.a * r255 * c2_alpha;
+    // scale dst from 0..0xff -> 0..0xffff
+    uint32_t dst_r = dst->r;
+    uint32_t dst_g = dst->g;
+    uint32_t dst_b = dst->b;
+    uint32_t dst_a = dst->a;
+    dst_r = (dst_r << 8) + dst_r;
+    dst_g = (dst_g << 8) + dst_g;
+    dst_b = (dst_b << 8) + dst_b;
+    dst_a = (dst_a << 8) + dst_a;
 
-    dst->r = (uint8_t)((float)c2.r * c2_alpha + ((float)c1.r * c1_alpha + (float)dst->r * dst_factor_1) * dst_factor_2);
-    dst->g = (uint8_t)((float)c2.g * c2_alpha + ((float)c1.g * c1_alpha + (float)dst->g * dst_factor_1) * dst_factor_2);
-    dst->b = (uint8_t)((float)c2.b * c2_alpha + ((float)c1.b * c1_alpha + (float)dst->b * dst_factor_1) * dst_factor_2);
-    dst->a = (uint8_t)((float)c2.a * c2_alpha + ((float)c1.a * c1_alpha + (float)dst->a * dst_factor_1) * dst_factor_2);
+    // scale c1 from 0..0xff -> 0..0xffff
+    uint32_t c1_r = c1.r;
+    uint32_t c1_g = c1.g;
+    uint32_t c1_b = c1.b;
+    uint32_t c1_a = c1.a;
+    c1_r = (c1_r << 8) + c1_r;
+    c1_g = (c1_g << 8) + c1_g;
+    c1_b = (c1_b << 8) + c1_b;
+    c1_a = (c1_a << 8) + c1_a;
+    
+    // scale c2 from 0..0xff -> 0..0xffff
+    uint32_t c2_r = c2.r;
+    uint32_t c2_g = c2.g;
+    uint32_t c2_b = c2.b;
+    uint32_t c2_a = c2.a;
+    c2_r = (c2_r << 8) + c2_r;
+    c2_g = (c2_g << 8) + c2_g;
+    c2_b = (c2_b << 8) + c2_b;
+    c2_a = (c2_a << 8) + c2_a;
+    
+    // scale c1_alpha and c2_alpha from 0..0xff -> 0..0xffff
+    uint32_t c1_a2 = c1_alpha;
+    uint32_t c2_a2 = c2_alpha;
+    c1_a2 = (c1_a2 << 8) + c1_a2;
+    c2_a2 = (c2_a2 << 8) + c2_a2;
+    
+    uint32_t dst_factor_1 = (0xFFFFFFFF - (c1_a * c1_a2)) >> 16;
+    uint32_t dst_factor_2 = (0xFFFFFFFF - (c2_a * c2_a2)) >> 16;
+    
+    dst_r = ((c2_r * c2_a2) + ((c1_r * c1_alpha + dst_r * dst_factor_1) >> 16) * dst_factor_2) >> 24;
+    dst_g = ((c2_g * c2_a2) + ((c1_g * c1_alpha + dst_g * dst_factor_1) >> 16) * dst_factor_2) >> 24;
+    dst_b = ((c2_b * c2_a2) + ((c1_b * c1_alpha + dst_b * dst_factor_1) >> 16) * dst_factor_2) >> 24;
+    dst_a = ((c2_a * c2_a2) + ((c1_a * c1_alpha + dst_a * dst_factor_1) >> 16) * dst_factor_2) >> 24;
+    
+    dst->r = (uint8_t)dst_r;
+    dst->g = (uint8_t)dst_g;
+    dst->b = (uint8_t)dst_b;
+    dst->a = (uint8_t)dst_a;
 }
 
 static inline void UIR_pick_colour(
@@ -217,7 +285,7 @@ static inline void UIR_pick_colour(
     // https://www.desmos.com/calculator/hpskoyrzwl 
     float outline_factor = UIR_clamp(outline_radius - UIR_abs(r + outline_radius), 0, 1);
     float fill_factor = UIR_clamp(UIR_min(1, outline_radius) - outline_radius * 2.f - r, 0, 1);
-    UIR_blend2(dst, outline, fill, outline_factor, fill_factor);
+    UIR_blend2_i(dst, outline, fill, (uint8_t)(255.f * outline_factor), (uint8_t)(255.f * fill_factor));
 }
 
 static void UIR_tile_draw_cmd(
@@ -301,8 +369,7 @@ static void UIR_tile_draw_cmd(
                     uint32_t image_i = image_yi * image->data_stride + image_xi;
 
                     uint8_t alpha = image->data[image_i];
-                    float r255 = 0.00392156862745098f;
-                    UIR_blend(&tile[tile_y*UIR_TILE_SIZE + tile_x], image->tint_colour, (float)alpha * r255);
+                    UIR_blend_i(&tile[tile_y*UIR_TILE_SIZE + tile_x], image->tint_colour, alpha);
 
                     tile_x++;
                 }
@@ -340,12 +407,12 @@ static void UIR_tile_draw_cmd(
                     uint32_t image_yi = (uint32_t)image_y;
                     uint32_t image_i = image_yi * image->data_stride + image_xi*4;
 
-                    UIR_blend2(
+                    UIR_blend2_i(
                         &tile[tile_y*UIR_TILE_SIZE + tile_x],
                         *(RGBA*)&image->data[image_i],
                         image->tint_colour,
-                        1.f,
-                        1.f
+                        0xff,
+                        0xff
                     );
 
                     tile_x++;
@@ -449,14 +516,14 @@ static void UIR_tile_draw(
     };
 
     uint32_t idx_count = info->drawcmd_count < countof(info->drawcmd_idx) ? info->drawcmd_count : countof(info->drawcmd_idx);
-    
+
     // Find clear colour
     RGBA clear_colour = uir->clear_colour;
     uint32_t idx_i = 0;
     for (; idx_i < idx_count; ++idx_i) {
         RGBA fill_colour;
         if (UIR_draw_cmd_is_fill(&fill_colour, &tile_rect, &draw_cmds[info->drawcmd_idx[idx_i]])) {
-            UIR_blend(&clear_colour, fill_colour, 1.f);
+            UIR_blend_i(&clear_colour, fill_colour, 0xff);
         } else {
             break;
         }
@@ -471,12 +538,12 @@ static void UIR_tile_draw(
     
     // There were more drawcmds in this tile than could fit in the index, we have to loop through the rest
     if (idx_count < info->drawcmd_count) {
-        UIR_DrawCmd *draw_cmds_start = &draw_cmds[info->drawcmd_idx[countof(info->drawcmd_idx)-1]];
-        UIR_DrawCmd *draw_cmds_end = draw_cmds_start + draw_cmd_count;
-    
-        for (; draw_cmds != draw_cmds_end; draw_cmds++) {
-            if (UIR_rect_intersect(&tile_rect, &draw_cmds->common.rect)) {
-                UIR_tile_draw_cmd(uir->tiles[tile_idx], &tile_rect, draw_cmds);
+        UIR_DrawCmd *ex_draw_cmds = &draw_cmds[info->drawcmd_idx[countof(info->drawcmd_idx)-1] + 1];
+        UIR_DrawCmd *draw_cmds_end = ex_draw_cmds + draw_cmd_count;
+
+        for (; ex_draw_cmds != draw_cmds_end; ex_draw_cmds++) {
+            if (UIR_rect_intersect(&tile_rect, &ex_draw_cmds->common.rect)) {
+                UIR_tile_draw_cmd(uir->tiles[tile_idx], &tile_rect, ex_draw_cmds);
                 if (++idx_count == info->drawcmd_count)
                     break;
             }
