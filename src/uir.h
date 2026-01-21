@@ -15,6 +15,13 @@ typedef struct RGBA {
     uint8_t r, g, b, a;
 } RGBA;
 
+// Performs integer premultiplied blending
+void UIR_blend(
+    RGBA *dst,
+    RGBA c,
+    uint8_t c_alpha
+);
+
 typedef RGBA UIR_Tile[UIR_TILE_SIZE*UIR_TILE_SIZE];
 typedef uint32_t UIR_Hash;
 

@@ -152,8 +152,7 @@ static inline float UIR_circle(
     return UIR_length(px, py) - radius;
 }
 
-// Performs integer premultiplied blending
-static inline void UIR_blend_i(
+void UIR_blend(
     RGBA *dst,
     RGBA c,
     uint8_t c_alpha
@@ -196,7 +195,7 @@ static inline void UIR_blend_i(
 }
 
 // Performs 2 consecutive integer premultiplied blends
-static inline void UIR_blend2_i(
+static void UIR_blend2(
     RGBA *dst,
     RGBA c1,
     RGBA c2,
@@ -263,7 +262,7 @@ static inline void UIR_pick_colour(
     // https://www.desmos.com/calculator/hpskoyrzwl 
     float outline_factor = UIR_clamp(outline_radius - UIR_abs(r + outline_radius), 0, 1);
     float fill_factor = UIR_clamp(UIR_min(1, outline_radius) - outline_radius * 2.f - r, 0, 1);
-    UIR_blend2_i(dst, outline, fill, (uint8_t)(255.f * outline_factor), (uint8_t)(255.f * fill_factor));
+    UIR_blend2(dst, outline, fill, (uint8_t)(255.f * outline_factor), (uint8_t)(255.f * fill_factor));
 }
 
 static void UIR_tile_draw_cmd(
@@ -347,7 +346,7 @@ static void UIR_tile_draw_cmd(
                     uint32_t image_i = image_yi * image->data_stride + image_xi;
 
                     uint8_t alpha = image->data[image_i];
-                    UIR_blend_i(&tile[tile_y*UIR_TILE_SIZE + tile_x], image->tint_colour, alpha);
+                    UIR_blend(&tile[tile_y*UIR_TILE_SIZE + tile_x], image->tint_colour, alpha);
 
                     tile_x++;
                 }
@@ -385,7 +384,7 @@ static void UIR_tile_draw_cmd(
                     uint32_t image_yi = (uint32_t)image_y;
                     uint32_t image_i = image_yi * image->data_stride + image_xi*4;
 
-                    UIR_blend2_i(
+                    UIR_blend2(
                         &tile[tile_y*UIR_TILE_SIZE + tile_x],
                         *(RGBA*)&image->data[image_i],
                         image->tint_colour,
@@ -501,7 +500,7 @@ static void UIR_tile_draw(
     for (; idx_i < idx_count; ++idx_i) {
         RGBA fill_colour;
         if (UIR_draw_cmd_is_fill(&fill_colour, &tile_rect, &draw_cmds[info->drawcmd_idx[idx_i]])) {
-            UIR_blend_i(&clear_colour, fill_colour, 0xff);
+            UIR_blend(&clear_colour, fill_colour, 0xff);
         } else {
             break;
         }
